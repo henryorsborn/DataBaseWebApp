@@ -1,2 +1,3 @@
 # DataBaseWebApp
-I've learned that many small clients dislike working with a database, so I'm creating a simple web app to remedy this
+This is a simple web app to help me practice Ajax.
+Its essentially phpmyadmin with a more simple interface.
