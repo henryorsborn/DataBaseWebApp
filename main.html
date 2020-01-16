@@ -16,7 +16,7 @@
 		<script>
 			
 			function show_table(theData) {
-				console.log(theData);
+
 				var tableFull = document.createElement("div");
 				tableFull.appendChild(document.createElement("br"));
 				tableFull.className = "table-container";
@@ -67,6 +67,7 @@
 					deleteButton.src = "img/delete_icon.png";
 					deleteButton.alt = "submit";
 					deleteButton.onclick=delete_row(tableName, theData, rowId);
+
 					deleteButtonCol.appendChild(deleteButton);
 					currentRow.appendChild(deleteButtonCol);
 					myTable.appendChild(currentRow);
@@ -103,9 +104,9 @@
 					items.appendChild(tableFull);
 				}
 			}
-			
+
 			jQuery.support.cors=true;
-			
+
 			function show_tables() {
 				$.ajax({
 					type: "POST",
@@ -127,6 +128,7 @@
 					}
 				});
 			}
+
 		
 			function delete_row(tableName, theData, rowId) {
 				return function() {
@@ -183,6 +185,7 @@
 					},
 					error: function(xhr, status, error){
 						console.log(error);
+
 					}
 				});
 			}

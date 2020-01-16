@@ -63,6 +63,7 @@
 				}
 			}
 			break;
+
 		
 		case "delete_row":
 			$tableName = $input["data"]["name"];
@@ -87,6 +88,7 @@
 		default:
 			$output["data"] = "Error: Action '".$action."' not found";
 			break;
+
 	}
 	echo htmlspecialchars(json_encode($output), ENT_NOQUOTES);
 ?>
