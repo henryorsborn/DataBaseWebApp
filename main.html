@@ -7,191 +7,331 @@
 		<!--
 		<link rel="stylesheet" type="text/css" href="https://maxcdn.bootstrap/3.3.5/css/bootstrap.min.css">
 		-->
+		
+		<!--
+			TODO Adjust the api to handle multiple actions
+		
+		
+		
+		--> 
+		
 	</head>
 	<body>
 		<h1>Here are the tables we found</h1>
 		<div id="items">
 		</div>
 		<script src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.3/jquery.min.js"></script>
+		<!--
+		<script src="scripts/jquery-3.4.1.min.js"></script>
+		--> 
 		<script>
+		var TableDat = {};
+		
+function acc(data, func) {
+	
+	var [head,...rest] = data;
+	if(data.length ==0){
+		return
+	} else {
+		func(head);
+		acc(rest, func);
+	}
+
+}
+
+function getTableData(name){
+	
+	var returnData = null;
+
+	$.ajax({
+		type: "POST",
+		url:'api.php',
+		async: false,
+		data: {"input":{
+				"action":["describe","select_from"],
+				"data":[{"name": name},{"name":name}]
+			}
+		},
+		success: function(data) {
 			
-			function show_table(theData) {
+			var newData = JSON.parse(data);
+			returnData = newData;
 
-				var tableFull = document.createElement("div");
-				tableFull.appendChild(document.createElement("br"));
-				tableFull.className = "table-container";
-				var tableName = theData["name"];
-				tableFull.id = tableName + "-div";
-				var tableHeaders = theData["headers"];
-				var tableData = theData["data"];
-				console.log(theData);
-				var label=document.createElement("h3");
-				label.innerHTML = tableName;
-				var myTable = document.createElement("table");
-				var firstRow = document.createElement("tr");
-				for(var j = 0; j < tableHeaders.length; j++){
-					var theader = document.createElement("th");
-					theader.innerHTML=tableHeaders[j]["Field"];
-					firstRow.appendChild(theader);
-				}
-				myTable.appendChild(firstRow);
-				for(var j = 0; j < tableData.length; j++){
-					var currentRow = document.createElement("tr");
-					var rowId = null;
-					for(var k = 0; k < Object.keys(tableData[j]).length; k++){
-						var currentCol = document.createElement("td");
-						if(tableHeaders[k]["Key"] == "PRI"){
-							rowId = tableData[j][tableHeaders[k]["Field"]];
-							currentCol.innerHTML = tableData[j][tableHeaders[k]["Field"]];
-						} else {
-							var rowInput = document.createElement("input");
-							var inputType = tableHeaders[k]["Type"];
-							rowInput.type = "text";
-							if(inputType.includes("varchar")){
-								rowInput.type = "text";
-							} else if(inputType.includes("int")){
-								rowInput.type = "number";
-							} else if(inputType=="time"){
-								rowInput.type = "time";
-							} else if(inputType=="date"){
-								rowInput.type = "date";
-							}
-							rowInput.value = tableData[j][tableHeaders[k]["Field"]];
-							currentCol.appendChild(rowInput);
-						}
-						currentRow.appendChild(currentCol);
-					}
-					var deleteButtonCol = document.createElement("td");
-					var deleteButton = document.createElement("input");
-					deleteButton.type="image";
-					deleteButton.src = "img/delete_icon.png";
-					deleteButton.alt = "submit";
-					deleteButton.onclick=delete_row(tableName, theData, rowId);
+		},
+		error: function(xhr, status, error){
+			console.log(error);
+		}
+	});
+	
+	return returnData;
 
-					deleteButtonCol.appendChild(deleteButton);
-					currentRow.appendChild(deleteButtonCol);
-					myTable.appendChild(currentRow);
+}
+			
+function show_table(theData) {
+
+
+	var tableFull = document.createElement("div");
+	tableFull.appendChild(document.createElement("br"));
+	tableFull.className = "table-container";
+	var tableName = theData["name"];
+	tableFull.id = tableName + "-div";
+	
+	var tableInfo = getTableData(tableName);
+
+	TableDat[tableName] = tableInfo;
+	var tableHeaders = tableInfo["data"][0];
+	var tableData = tableInfo["data"][1];
+
+	var label=document.createElement("h3");
+	label.innerHTML = tableName;
+	var myTable = document.createElement("table");
+	var firstRow = document.createElement("tr");
+	
+	for(var j = 0; j < tableHeaders.length; j++){
+		var theader = document.createElement("th");
+		theader.innerHTML=tableHeaders[j]["Field"];
+		firstRow.appendChild(theader);
+	}
+	myTable.appendChild(firstRow);
+	for(var j = 0; j < tableData.length; j++){
+		var currentRow = document.createElement("tr");
+		var rowId = null;
+		for(var k = 0; k < Object.keys(tableData[j]).length; k++){
+			var currentCol = document.createElement("td");
+			if(tableHeaders[k]["Key"] == "PRI"){
+				rowId = tableData[j][tableHeaders[k]["Field"]];
+				currentCol.innerHTML = tableData[j][tableHeaders[k]["Field"]];
+			} else {
+				var rowInput = document.createElement("input");
+				var inputType = tableHeaders[k]["Type"];
+				rowInput.type = "text";
+				if(inputType.includes("varchar")){
+					rowInput.type = "text";
+				} else if(inputType.includes("int")){
+					rowInput.type = "number";
+				} else if(inputType=="time"){
+					rowInput.type = "time";
+				} else if(inputType=="date"){
+					rowInput.type = "date";
 				}
-				tableFull.appendChild(label);
-				tableFull.appendChild(myTable);
-				var saveButton = document.createElement("input");
-				var resetButton = document.createElement("input");
-				saveButton.value="Save";
-				resetButton.value="Reset";
-				saveButton.type="submit";
-				resetButton.type="submit";
-				saveButton.onclick=function() {
-					var saveDialog = confirm("Are you sure you would like to save?\nThis change is permanent.");
-					if(saveDialog){
-						updateData(theData);
-					}
-				}
-				resetButton.onclick=function() {
-					var resetDialog = confirm("Are you sure you would like to reset?\nYou will lose all unsaved progess.");
-				    if(resetDialog){
-						show_table(theData);
-					}
-				};
-				tableFull.appendChild(saveButton);
-				tableFull.appendChild(resetButton);
-				var items = document.getElementById("items");
-				var currentItem = document.getElementById(tableName + "-div");
-				if(document.getElementById(tableName + "-div")){	
-					items.insertBefore(tableFull, items.childNodes[1+Array.prototype.indexOf.call(currentItem.parentNode.children,
-					currentItem)]);
-					currentItem.remove();
-				} else {
-					items.appendChild(tableFull);
-				}
+				rowInput.value = tableData[j][tableHeaders[k]["Field"]];
+				currentCol.appendChild(rowInput);
 			}
+			currentRow.appendChild(currentCol);
+		}
+		var deleteButtonCol = document.createElement("td");
+		var deleteButton = document.createElement("input");
+		deleteButton.type="image";
+		deleteButton.src = "img/delete_icon.png";
+		deleteButton.alt = "submit";
+		deleteButton.onclick=delete_row(tableName, rowId);
+		deleteButtonCol.appendChild(deleteButton);
+		currentRow.appendChild(deleteButtonCol);
+		myTable.appendChild(currentRow);
+	}
+	var add_button = document.createElement("input");
+	add_button.value = "add";
+	add_button.type = "submit";
+	add_button.onclick=add_row(tableName);
+	myTable.appendChild(add_button);
+	tableFull.appendChild(label);
+	tableFull.appendChild(myTable);
+	var saveButton = document.createElement("input");
+	var resetButton = document.createElement("input");
+	saveButton.value="Save";
+	resetButton.value="Reset";
+	saveButton.type="submit";
+	resetButton.type="submit";
+	saveButton.onclick=function() {
+		var saveDialog = confirm("Are you sure you would like to save?\nThis change is permanent.");
+		if(saveDialog){
+			updateData(theData);
+		}
+	}
+	resetButton.onclick=function() {
+		var resetDialog = confirm("Are you sure you would like to reset?\nYou will lose all unsaved progess.");
+		if(resetDialog){
+			show_table(theData);
+		}
+	};
+	tableFull.appendChild(saveButton);
+	tableFull.appendChild(resetButton);
+	var items = document.getElementById("items");
+	var currentItem = document.getElementById(tableName + "-div");
+	if(document.getElementById(tableName + "-div")){	
+		items.insertBefore(tableFull, items.childNodes[1+Array.prototype.indexOf.call(currentItem.parentNode.children,
+		currentItem)]);
+		currentItem.remove();
+	} else {
+		items.appendChild(tableFull);
+	}
+	
+}
 
-			jQuery.support.cors=true;
+jQuery.support.cors=true;
 
-			function show_tables() {
-				$.ajax({
-					type: "POST",
-					url:'api.php',
-					data: {"input":{
-							"action":"show_tables",
-							"data":{}				
-						}
-					},
-					success: function(data) {
-						var tables = JSON.parse(data)["data"];
-						for(var i = 0; i < tables.length; i++){
-							show_table(tables[i]);
-						}
-						
-					},
-					error: function(xhr, status, error){
-						console.log(error);
-					}
-				});
+function show_tables() {
+	$.ajax({
+		type: "POST",
+		url:'api.php',
+		data: {"input":{
+				"action":["show_tables"],
+				"data":{}				
 			}
+		},
+		success: function(data) {
+			
+			var tables = (JSON.parse(data))["data"][0];
+			acc(tables, show_table);
 
+		},
+		error: function(xhr, status, error){
+			console.log(error);
+		}
+	});
+}
+
+function delete_row(tableName, rowId) {
+	return function() {
+	
+		if(TableDat[tableName]["deleteFringe"]){
+			if(!TableDat[tableName]["deleteFringe"].includes(rowId)){
+				TableDat[tableName]["deleteFringe"].push(rowId);
+			}
+		} else {
+			TableDat[tableName]["deleteFringe"] =[rowId];
+		}
 		
-			function delete_row(tableName, theData, rowId) {
-				return function() {
+
+		var currentTable = document.getElementById(tableName+"-div").childNodes[2];
+		var firstRow = currentTable.childNodes[1];
+
+		for(var i = 0; i < firstRow.childNodes.length; i++){
+			//console.log(typeof(firstRow.childNodes[i].childNodes[0].innerHTML)=='undefined');
+			if(typeof(firstRow.childNodes[i].childNodes[0].innerHTML)=='undefined'){
+				var rowIndex = i;
+				break;
+			}
+		}
+		for(var i = 1; i <currentTable.childNodes.length-1; i++){
+			if(currentTable.childNodes[i].childNodes[rowIndex].innerHTML == rowId){
+				console.log("FOUND IT");
+				var toBeRemoved = i;
+				break;
+			}
+		}
+		currentTable.removeChild(currentTable.childNodes[i]);
+		
+		var saveDialog = confirm("Are you sure you would like to delete?\nThis change is permanent.");
+		if(saveDialog){
+			/*
+			$.ajax({
+				type: "POST",
+				url: "api.php",
+				data: {"input":{
+						"action":["delete_row"],
+						"data":[{
+							"id":rowId,
+							"name":tableName
+						}]
+					}
+				},
+				success: function(data) {
+					console.log(data);
+					show_table(theData);
+				},
+				error: function(xhr, status, error){
+					console.log(error);
+				}						
+			});
+			*/
+		}
+	}
+}
+
+function add_row(tableName){
+	return function() {
+	var table = document.getElementById(tableName + "-div");
+	var tableRefined = table.childNodes[2]
+	var size = tableRefined.childNodes.length-2;
+	var finalRow = tableRefined.childNodes[size];
+	var newId = parseInt(finalRow.childNodes[0].innerHTML)+1;
+	console.log(tableRefined);
+	console.log(finalRow);
+	var newFinalRow = finalRow.cloneNode(true);
+	console.log(newFinalRow);
+	console.log(tableRefined);
+	newFinalRow.childNodes[0].innerHTML = newId;
+	for(var i = 1; i < newFinalRow.childNodes.length; i++){
+		newFinalRow.childNodes[i].childNodes[0].value = "";
+	}
+	tableRefined.insertBefore(newFinalRow,tableRefined.childNodes[size+1]);
+	var newChildren = tableRefined.children;
+	console.log(newChildren);
+	console.log(newId);
+	
+	
+	}
+}
+
+function updateData(theData){
+
+	var name = theData["name"];
+	var currentTable = document.getElementById(name+"-div");
+	
+	newHeaders = TableDat[name]["data"][0];
+	newData = TableDat[name]["data"][1];
+	
+	insertData = [];
+	
+	var currentTableRefined = currentTable.childNodes[2];
+	var maxChildNodes = currentTableRefined.childNodes.length-1;
+
+	for(var i = 1; i < maxChildNodes; i++){
+
+
+		var currentRow = currentTableRefined.childNodes[i];
+		if(i>newHeaders.length-1){
+			insertData[i-newHeaders.length] = {};
+		}
+		for(var j = 1; j < currentRow.childNodes.length-1; j++){
+			var arrayKey = currentTableRefined.childNodes[0].childNodes[j].innerHTML;
+			if(i<=newHeaders.length-1){
+				newData[i-1][arrayKey]=currentRow.childNodes[j].childNodes[0].value;
+			} else {
+				if(currentRow.childNodes[j].childNodes[0].value==""){
+					console.log(arrayKey +" is empty");
+					return;
+				}
 				
-					
-					var saveDialog = confirm("Are you sure you would like to delete?\nThis change is permanent.");
-					if(saveDialog){
-					
-						$.ajax({
-							type: "POST",
-							url: "api.php",
-							data: {"input":{
-									"action":"delete_row",
-									"data":{
-										"id":rowId,
-										"name":tableName
-									}
-								}
-							},
-							success: function(data) {
-								show_table(theData);
-							},
-							error: function(xhr, status, error){
-								console.log(error);
-							}						
-						});
-					}
-				}
-		
+				insertData[i-newHeaders.length][arrayKey]=currentRow.childNodes[j].childNodes[0].value;
 			}
+		}	
 		
-			function updateData(theData){
-				var newData = theData;
-				var name = newData["name"];
-				var currentTable = document.getElementById(name+"-div");
-				var currentTableRefined = currentTable.childNodes[2];
-				for(var i = 1; i < currentTableRefined.childNodes.length; i++){
-					var currentRow = currentTableRefined.childNodes[i];
-					for(var j = 1; j < currentRow.childNodes.length-1; j++){
-						var arrayKey = currentTableRefined.childNodes[0].childNodes[j].innerHTML;
-						newData["data"][i-1][arrayKey]=currentRow.childNodes[j].childNodes[0].value;
-					}
-				}
-				$.ajax({
-					type: "POST",
-					url:'api.php',
-					data: {"input":{
-							"action":"update",
-							"data":newData		
-						}
-					},
-					success: function(data) {
-						console.log(data);
-					},
-					error: function(xhr, status, error){
-						console.log(error);
+	}
 
-					}
-				});
+
+	$.ajax({
+		type: "POST",
+		url:'api.php',
+		async:false,
+		data: {"input":{
+				"action":["update"],
+				"data":[{"name":name,"data":newData}]		
 			}
-			show_tables();
+		},
+		success: function(data) {
+			console.log(data);
+		},
+		error: function(xhr, status, error){
+			console.log(error);
+		}
+	});
+}
+show_tables();
+
 		</script>
-		
+	 	
 		
 	</body>
 </html>
